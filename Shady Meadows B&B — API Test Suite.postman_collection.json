@@ -1,0 +1,443 @@
+{
+	"info": {
+		"_postman_id": "b75c72c7-22e5-43ac-8690-d765ac4c8372",
+		"name": "Shady Meadows B&B — API Test Suite",
+		"description": "Complete API test suite for the Shady Meadows B&B (automationintesting.online).\n\nIncludes:\n- Branding verification\n- Room inventory validation\n- Booking creation (happy path + negative tests)\n\nRun order: Use 'Run Collection' in Postman or Newman CLI.\nThe booking tests automatically capture roomId from the rooms request via a pre-request script.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Branding",
+			"item": [
+				{
+					"name": "GET Branding — 200 + name matches",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// ── Status Code ────────────────────────────────────",
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// ── Content-Type ───────────────────────────────────",
+									"pm.test('Content-Type is application/json', function () {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+									"});",
+									"",
+									"// ── Response is a JSON object ──────────────────────",
+									"pm.test('Response body is a JSON object', function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.be.an('object');",
+									"});",
+									"",
+									"// ── Exact name match ───────────────────────────────",
+									"pm.test('B&B name is exactly \"Shady Meadows B&B\"', function () {",
+									"    const json = pm.response.json();",
+									"    const Meadowsname = pm.environment.set(\"name\");",
+									"    pm.expect(json.name).to.eql(Meadowsname);",
+									"});",
+									"",
+									"// ── Email format validation (regex) ────────────────",
+									"pm.test('Contact email matches valid email pattern', function () {",
+									"    const json = pm.response.json();",
+									"    const email = json.contact && json.contact.email;",
+									"    pm.expect(email, 'contact.email must exist').to.be.a('string').and.not.empty;",
+									"    const emailRegex = /^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$/;",
+									"    pm.expect(email).to.match(emailRegex, `\"${email}\" is not a valid email`);",
+									"});",
+									"",
+									"// ── Required fields present ─────────────────────────",
+									"pm.test('Response contains required fields: name, description, contact', function () {",
+									"    const json = pm.response.json();",
+									"    const email = pm.environment.set(\"email\");",
+									"    const description = pm.environment.set(\"description\");",
+									"    const name = pm.environment.set(\"name\");",
+									"    const phone = pm.environment.set(\"phone\");",
+									"    pm.expect(json.description).to.eql(description);",
+									"    pm.expect(json.contact.name).to.eql(name);",
+									"    pm.expect(json.contact.email).to.eql(email); ",
+									"    pm.expect(json.contact.phone).to.eql(phone);",
+									"});",
+									"",
+									"// ── Required fields present ─────────────────────────",
+									"pm.test('Response contains required fields: name, description, contact', function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('name');",
+									"    pm.expect(json).to.have.property('description');",
+									"    pm.expect(json).to.have.property('contact');",
+									"    pm.expect(json.contact).to.have.property('email');",
+									"});",
+									"",
+									"// ── Response time SLA ───────────────────────────────",
+									"pm.test('Response time is under 3000ms', function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(3000);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true,
+							"host": true,
+							"accept": true,
+							"accept-encoding": true
+						}
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "content-type",
+								"value": "application/json"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
+								"type": "text"
+							},
+							{
+								"key": "sec-ch-ua",
+								"value": "\"Microsoft Edge\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+								"type": "text"
+							},
+							{
+								"key": "Cookie",
+								"value": "token={{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/branding",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"branding"
+							]
+						},
+						"description": "Fetches B&B branding info and validates name, email format, and required fields."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Room Inventory",
+			"item": [
+				{
+					"name": "GET Rooms — 200 + array with price > 0",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// ── Status Code ────────────────────────────────────",
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"",
+									"pm.test(\"Rooms array is not empty\", function () {",
+									"    const rooms = pm.response.json().rooms;",
+									"    pm.expect(rooms.length).to.be.above(0);",
+									"});",
+									"",
+									"// Save first valid roomid for booking step",
+									"const rooms = pm.response.json().rooms;",
+									"pm.collectionVariables.set('capturedRoomId', rooms[0].roomid);",
+									"console.log('Using roomId:', rooms[0].roomid);",
+									"",
+									"// ── Response is a JSON object ──────────────────────",
+									"pm.test('Response body is a JSON object', function () {",
+									"    pm.expect(pm.response.json()).to.be.an('object');",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Cookie",
+								"value": "token={{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/room/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"room",
+								""
+							]
+						},
+						"description": "Retrieves room list, validates structure, and captures a roomId for booking tests."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Booking Creation",
+			"item": [
+				{
+					"name": "POST Booking — Happy Path (201 Created)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Build future dates dynamically so the booking is always in the future",
+									"const today    = new Date();",
+									"const checkin  = new Date(today);",
+									"checkin.setDate(today.getDate() + 2);",
+									"const checkout = new Date(today);",
+									"checkout.setDate(today.getDate() + 5);",
+									"",
+									"// Format as YYYY-MM-DD",
+									"const fmt = d => d.toISOString().split('T')[0];",
+									"pm.collectionVariables.set('checkinDate',  fmt(checkin));",
+									"pm.collectionVariables.set('checkoutDate', fmt(checkout));",
+									"console.log('Checkin:', fmt(checkin), '| Checkout:', fmt(checkout));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response contains bookingid\", function () {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.bookingid).to.be.a('number').and.above(0);",
+									"    pm.collectionVariables.set('createdBookingId', json.bookingid);",
+									"    console.log('Booking created with ID:', json.bookingid);",
+									"});",
+									"",
+									"pm.test(\"Firstname matches\", function () {",
+									"    pm.expect(pm.response.json().booking.firstname).to.eql('Jane');",
+									"});",
+									"",
+									"pm.test(\"Lastname matches\", function () {",
+									"    pm.expect(pm.response.json().booking.lastname).to.eql('Tester');",
+									"});",
+									"",
+									"pm.test(\"Depositpaid is true\", function () {",
+									"    pm.expect(pm.response.json().booking.depositpaid).to.be.true;",
+									"});",
+									"pm.test(\"Checkin date is correct\", function () {",
+									"    pm.expect(pm.response.json().booking.bookingdates.checkin).to.eql('2026-06-01');",
+									"});",
+									"",
+									"pm.test(\"Checkout date is correct\", function () {",
+									"    pm.expect(pm.response.json().booking.bookingdates.checkout).to.eql('2026-06-05');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-length": true,
+							"host": true,
+							"user-agent": true,
+							"accept-encoding": true,
+							"accept": true,
+							"connection": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "roomid",
+								"value": "{{capturedRoomId}}"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+								"type": "text"
+							},
+							{
+								"key": "Cookie",
+								"value": "token={{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"roomid\": {{capturedRoomId}},\n    \"firstname\":   \"Jane\",\n    \"lastname\":    \"Tester\",\n    \"depositpaid\": true,\n    \"email\":       \"jane.tester@example.com\",\n    \"phone\":       \"01234567890\",\n    \"bookingdates\": {\n        \"checkin\":  \"2026-04-01\",\n        \"checkout\": \"2026-04-05\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/booking",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"booking"
+							]
+						},
+						"description": "Creates a booking with dynamically computed future dates. roomId is captured from the previous Rooms request."
+					},
+					"response": []
+				},
+				{
+					"name": "POST Booking — Missing firstname (Negative Test)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is NOT 201 for missing firstname', function () {",
+									"    pm.expect(pm.response.code).to.not.equal(201);",
+									"});",
+									"pm.test('Response indicates a validation error (4xx)', function () {",
+									"    pm.expect(pm.response.code).to.be.within(400, 499);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "roomid",
+								"value": "{{capturedRoomId}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"lastname\": \"NoFirstname\",\n  \"totalprice\": 100,\n  \"depositpaid\": true,\n  \"bookingdates\": {\n    \"checkin\":  \"2025-12-01\",\n    \"checkout\": \"2025-12-05\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/booking",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"booking"
+							]
+						},
+						"description": "Negative test: omitting 'firstname' should return a 4xx error, not 201."
+					},
+					"response": []
+				},
+				{
+					"name": "POST Booking — Checkout before Checkin (Negative Test)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is NOT 201 when checkout is before checkin', function () {",
+									"    pm.expect(pm.response.code).to.not.equal(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "roomid",
+								"value": "{{capturedRoomId}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstname\": \"Bad\",\n  \"lastname\": \"Dates\",\n  \"totalprice\": 100,\n  \"depositpaid\": true,\n  \"bookingdates\": {\n    \"checkin\":  \"2025-12-10\",\n    \"checkout\": \"2025-12-05\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/booking/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"booking",
+								""
+							]
+						},
+						"description": "Negative test: checkout (Dec 5) is before checkin (Dec 10). Should fail validation."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://automationintesting.online"
+		},
+		{
+			"key": "capturedRoomId",
+			"value": ""
+		},
+		{
+			"key": "createdBookingId",
+			"value": ""
+		},
+		{
+			"key": "checkinDate",
+			"value": ""
+		},
+		{
+			"key": "checkoutDate",
+			"value": ""
+		},
+		{
+			"key": "authToken",
+			"value": ""
+		}
+	]
+}
